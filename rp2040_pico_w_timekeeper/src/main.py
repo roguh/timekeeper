@@ -42,8 +42,8 @@ def main():
     print("My IP address is", wifi.radio.ipv4_address)
 
     # Every N * 60 seconds
-    check = -1000
-    while check + 3 * 60 < time.monotonic():
+    draw_each_min = 10
+    while True:
         try:
             # response = requests.get(url=TIME_URL).json()
             # the_time = response.get("datetime", "")
@@ -52,4 +52,4 @@ def main():
             draw(the_time[0] + " " + the_time[1])
         except Exception as e:
             print(str(e))
-        check = time.monotonic()
+        time.sleep(draw_each_min * 60)

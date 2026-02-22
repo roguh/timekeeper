@@ -15,17 +15,19 @@ def draw(current_time):
     image.text("RPi Pico Zero", 10, y, 0xFF, font_name='./assets/font5x8.bin')
     y += line_height
     size = 2
-    image.text("FeLiNa FOREVER", 10, y, 0xFF, font_name='./assets/font5x8.bin', size=size)
+    image.text("Felina forever <3", 10, y, 0xFF, font_name='./assets/font5x8.bin', size=size)
     y += line_height * size
-    for line in current_time.split() + ["/\\__---__/\\"]:
+    for line in current_time.split() + ["><((((o>", "<o((((><"]:
         size = 3
         image.text(line, 10, y, 0xFF, font_name='./assets/font5x8.bin', size=size)
         y += line_height * size
 
-    time.sleep(1)
+    time.sleep(0.2)
     epd.init(0)
+    print("Clearing screen")
     epd.Clear(0xFF)
-    time.sleep(2)
+    time.sleep(0.2)
+    print("Drawing pic")
     epd.display_Landscape(epd.buffer_Landscape)
-    print("Drawing done. Putting screen to sleep")
-    epd.sleep()
+    # print("Drawing done. Putting screen to sleep")
+    # epd.sleep()
