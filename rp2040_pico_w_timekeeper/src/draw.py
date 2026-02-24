@@ -9,10 +9,19 @@ def draw(current_time):
     epd = EPD_2in66()
     image = adafruit_framebuf.FrameBuffer(epd.buffer_Landscape, epd.height, epd.width, PIXEL_FORMAT)
     image.fill(0x00)
-    image.text("RPi Pico Zero", 10, 0, 0xFF, font_name='./assets/font5x8.bin')
-    image.text("FeLiNa FOREVER", 10, 20, 0xFF, font_name='./assets/font5x8.bin', size=2)
-    image.text(current_time, 10, 40, 0xFF, font_name='./assets/font5x8.bin', size=3)
-    
+
+    line_height = 10
+    y = 0
+    image.text("RPi Pico Zero", 10, y, 0xFF, font_name='./assets/font5x8.bin')
+    y += line_height
+    size = 2
+    image.text("FeLiNa FOREVER", 10, y, 0xFF, font_name='./assets/font5x8.bin', size=size)
+    y += line_height * size
+    for line in current_time.split() + ["/\\__---__/\\"]:
+        size = 3
+        image.text(line, 10, y, 0xFF, font_name='./assets/font5x8.bin', size=size)
+        y += line_height * size
+
     time.sleep(1)
     epd.init(0)
     epd.Clear(0xFF)
