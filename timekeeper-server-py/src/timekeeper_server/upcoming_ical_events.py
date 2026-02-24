@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+import hashlib
+import json
+import os
+import tempfile
+import time
+import urllib.request
+from argparse import ArgumentParser
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Tuple, cast
+
+from dateutil.tz import tzlocal
+from icalevents.icalparser import Event, parse_events
+
+try:
+    from progressbar import progressbar
+
+    if hasattr(progressbar, "ProgressBar"):
+        progressbar = progressbar.ProgressBar()
+except:
+    progressbar = lambda x: x
+
+# 15 minute cache
+DEFAULT_CACHE_AGE = 60 * 15
+
+start_date = (2022, 10, 29)
+end_date = (2022, 11, 12)
+
+
+def get1(calendar_urls: list[str], start_date: str | None=None, no_cache=False) -> str:
+    calendar_strings = {
+        url: download_calendar(url, cache=not no_cache)
+        for url in progressbar(calendar_urls)
+    }
+    return upcoming_events_to_json(calendar_strings, start_date)
+
+
+def strhash(string: str) -> str:
+    return hashlib.sha1(string.encode("utf-8")).hexdigest()
+
+
+def cache_file_for(string: str, use_tmp=True) -> str:
+    basename = "calendar-cache"
+    if use_tmp:
+        cache_dir = os.path.join(tempfile.gettempdir(), basename)
+    else:
+        cache_dir = os.path.join(os.path.dirname(__file__), basename)
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, strhash(string))
+
+
+def get_from_cache(
+    url: str, cache: bool, cache_age: float
+) -> Tuple[bool, Optional[str]]:
+    if os.path.exists(cache_file_for(url)):
+        with open(cache_file_for(url)) as cache_file:
+            try:
+                cache_entry = json.load(cache_file)
+            except json.JSONDecodeError:
+                return False, None
+
+            too_old = cache_entry.get("time", 0) >= time.time() + cache_age
+            if cache_entry.get("cached_calendar"):
+                return too_old, cache_entry.get("cached_calendar")
+    return False, None
+
+
+def download_calendar(
+    url: str, cache: bool = False, cache_age: float = DEFAULT_CACHE_AGE
+) -> Optional[str]:
+    too_old = True
+    calendar_string = None
+    if cache:
+        too_old, calendar_string = get_from_cache(url, cache, cache_age)
+        if not too_old and calendar_string is not None:
+            print("loading cached calendar:", url)
+            return calendar_string
+
+    try:
+        print("downloading calendar:", url)
+        calendar_string = urllib.request.urlopen(url).read().decode("utf-8")
+    except Exception as exc:
+        print("error downloading", exc)
+        if calendar_string is not None:
+            return calendar_string
+
+    if cache:
+        with open(cache_file_for(url), "w") as cache_file:
+            json.dump(
+                {"time": time.time(), "cached_calendar": calendar_string}, cache_file
+            )
+
+    return calendar_string
+
+
+def serialize(event, delta):
+    return json.dumps({"summary": event.summary, "delta": str(delta)})
+
+
+def parse_date(date: Optional[str]) -> datetime:
+    if date is None:
+        return datetime.now(tz=tzlocal())
+    try:
+        date_int = int(date)
+    except ValueError:
+        return datetime.fromisoformat(date)
+    return datetime.fromtimestamp(date_int)
+
+
+def upcoming_events_to_json(
+    calendar_strings: Dict[str, Optional[str]], start_date_str: Optional[str]
+) -> str:
+    start_date = parse_date(start_date_str)
+    end_date = start_date + timedelta(days=1)
+    print(start_date, end_date)
+    upcoming_events = []
+    upcoming_all_day_events = []
+    for url, calendar in calendar_strings.items():
+        print(url)
+        if calendar is None:
+            continue
+        for event in parse_events(calendar, start=start_date, end=end_date):
+            event = cast(Event, event)
+            delta = cast(timedelta, event.start - start_date)
+            if delta.total_seconds() >= 0:
+                if event.all_day:
+                    upcoming_all_day_events.append((event, delta))
+                else:
+                    upcoming_events.append((event, delta))
+
+            if event.all_day:
+                print(
+                    "ALL DAY",
+                    event.start.strftime("%Y-%m-%d"),
+                    event.summary,
+                    event.location,
+                )
+            else:
+                print(
+                    event.start,
+                    "\n\t",
+                    event.start - start_date,
+                    "\n\t",
+                    event.summary,
+                    event.location,
+                )
+
+    upcoming_events.sort(key=lambda x: x[1].total_seconds())
+    upcoming_all_day_events.sort(key=lambda x: x[1].total_seconds())
+
+    if len(upcoming_events) == 0:
+        if len(upcoming_all_day_events) == 0:
+            return serialize("", "")
+        event, delta = upcoming_all_day_events[0]
+    else:
+        event, delta = upcoming_events[0]
+    return serialize(event, delta)
+
+
+def main():
+    argparser = ArgumentParser(
+        description="Show upcoming calendar events from .ical links"
+    )
+
+    argparser.add_argument(
+        "--start-date",
+        type=str,
+        default=None,
+        help="ISO format or UNIX timestamp. Example: '2022-11-02 10:34'",
+    )
+    end_date_or_duration_group = argparser.add_mutually_exclusive_group()
+    end_date_or_duration_group.add_argument(
+        "--end-date", type=str, help="Example: TODO"
+    )
+    end_date_or_duration_group.add_argument(
+        "--duration", type=str, help="Example: TODO"
+    )
+
+    argparser.add_argument(
+        "--output-file",
+        type=str,
+        default="upcoming.json",
+        help="",
+    )
+
+    argparser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Set this option to prevent saving a local copy of the calendars",
+    )
+
+    args = argparser.parse_args()
+
+    with open(
+        os.path.join(os.path.dirname(__file__), "calendar_links.json")
+    ) as calendar_urls_file:
+        calendar_urls = json.load(calendar_urls_file)
+        assert isinstance(calendar_urls, list)
+        for url in calendar_urls:
+            assert isinstance(url, str)
+
+    out_json = get1(calendar_urls, args.start_date, args.no_cache)
+    print(out_json, "to", args.output_file)
+    with open(args.output_file, "w") as upcoming_file:
+        upcoming_file.write(out_json)
+
+
+if __name__ == "__main__":
+    main()
