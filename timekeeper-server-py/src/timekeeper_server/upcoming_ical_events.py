@@ -94,7 +94,8 @@ def download_calendar(
 
 
 def serialize(event, delta):
-    return json.dumps({"summary": event.summary, "delta": str(delta)})
+    dt = ":".join(str(delta).split(':')[:2])
+    return {"summary": event.summary, "delta": dt}
 
 
 def parse_date(date: Optional[str]) -> datetime:
@@ -199,7 +200,7 @@ def main():
         for url in calendar_urls:
             assert isinstance(url, str)
 
-    out_json = get1(calendar_urls, args.start_date, args.no_cache)
+    out_json = json.dumps(get1(calendar_urls, args.start_date, args.no_cache))
     print(out_json, "to", args.output_file)
     with open(args.output_file, "w") as upcoming_file:
         upcoming_file.write(out_json)

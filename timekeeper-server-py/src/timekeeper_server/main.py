@@ -9,7 +9,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from . import upcoming_ical_events
 
-TIME_FORMAT = '%d/%m/%Y %H:%M:%S'
+TIME_FORMAT = '%d/%m/%Y %I:%M%p'
 
 app = FastAPI()
 

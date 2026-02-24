@@ -1,2 +1,2 @@
 #!/bin/sh
-exec uvicorn timekeeper_server.main:app $@
+exec uvicorn src.timekeeper_server.main:app $@
