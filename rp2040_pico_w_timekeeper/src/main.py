@@ -52,4 +52,5 @@ def main():
             draw(the_time[0] + " " + the_time[1])
         except Exception as e:
             print(str(e))
+        print("Sleeping for",  draw_each_min, "minutes")
         time.sleep(draw_each_min * 60)
