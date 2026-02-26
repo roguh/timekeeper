@@ -1,3 +1,4 @@
+import random
 import time
 
 import adafruit_framebuf
@@ -14,7 +15,7 @@ BIRDS = [
     r"               ||                                ",
 ]
 
-HUMM = [
+HUMM = [[
     r"                     ,_                        ",
     r"                      :`.            .--._     ",
      "                       `.`-.        /  ',-\"\"\"\"'",
@@ -23,9 +24,20 @@ HUMM = [
     r"                                ;.    /        ",
     r"                               /     /         ",
     r"                          ,_.-';_,.'`          ",
-     "                           `\"-;`/              ",
+     '                           `"-;`/              ',
     r"                             ,'`               ",
-]
+], [
+    r"                                               _'  ",
+    r"                            _.--.            .`:   ",
+     "                       '\"\"\"\"-,'  \\        .-`.`    ",
+     "                               \\\"._'._.-~`` .`     ",
+    r"                               ;~` `. _.-~`        ",
+    r"                               \    .;             ",
+    r"                                \     \            ",
+    r"                                 `'.,_;'-._.       ",
+    r'                                     \`;-"`        ',
+    r"                                      `',          ",
+]]
 
 
 def draw(current_time):
@@ -51,12 +63,12 @@ def draw(current_time):
         image.text(line, 7, y, 0xFF, font_name='./assets/font5x8.bin')
         y += line_height * 2 // 3
 
-    y = time_y + line_height * 1
-    for line in HUMM:
+    y = time_y + line_height // 2
+    for line in HUMM[1]: #random.choice(HUMM):
         image.text(line, 7, y, 0xFF, font_name='./assets/font5x8.bin')
         y += line_height
 
-    time.sleep(0.2)
+    epd.reset()
     epd.init(0)
     print("Clearing screen")
     epd.Clear(0xFF)

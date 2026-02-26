@@ -42,7 +42,7 @@ def main():
     print("My IP address is", wifi.radio.ipv4_address)
 
     # Every N * 60 seconds
-    draw_each_min = 10
+    draw_each_min = 1
     while True:
         try:
             # response = requests.get(url=TIME_URL).json()
@@ -52,5 +52,5 @@ def main():
             draw(the_time[0] + " " + the_time[1])
         except Exception as e:
             print(str(e))
-        print("Sleeping for",  draw_each_min, "minutes")
+        print("Sleeping for",  draw_each_min, "min.")
         time.sleep(draw_each_min * 60)
